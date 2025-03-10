@@ -94,16 +94,16 @@ def upload():
         if(file.filename == ""):
             return "no selected file"
         
-        file_path = os.path.join("static//uploads", file.filename)
+        file_path = os.path.join("tmp", file.filename)
         file.save(file_path)
         
         # try:   
         clip = mp.VideoFileClip(file_path)
         if(clip.audio):
             filename = os.path.splitext(file.filename)[0] 
-            clip.audio.write_audiofile(f"static//audios//{filename}.mp3")
-            subtitles = transcribe(f"static//audios//{filename}.mp3")
-            save_srt(subtitles,f"static//srt_files//{filename}.srt")
+            clip.audio.write_audiofile(f"tmp\\{filename}.mp3")
+            subtitles = transcribe(f"tmp\\{filename}.mp3")
+            save_srt(subtitles,f"tmp\\{filename}.srt")
             return redirect(f"/srtfiledownload/{filename}")
             # return file.filename.srt
         else:
@@ -119,19 +119,22 @@ def srt_file_download(filename):
 
 @app.route("/download/<filename>")
 def download_srt(filename):
-    srt_path = os.path.join("static//srt_files", filename+".srt")
+    srt_path = os.path.join("tmp", filename + ".srt") 
     
-    return send_file(srt_path, as_attachment=True)
+    if not os.path.exists(srt_path):
+        return "File not found", 404
+    
+    return send_file(srt_path, as_attachment=True, download_name=f"{filename}.srt")
 
-def cleanup_files():
-    """Deletes all files from static/uploads, static/srt_files, and static/audios."""
-    for folder in ["static//uploads", "static//srt_files","static//audios"]:
-        for filename in os.listdir(folder):
-            file_path = os.path.join(folder, filename)
-            try:
-                os.remove(file_path)
-            except Exception as e:
-                print(f"Error deleting {file_path}: {e}")
+# def cleanup_files():
+#     """Deletes all files from static/uploads, static/srt_files, and static/audios."""
+#     for folder in ["static//uploads", "static//srt_files","static//audios"]:
+#         for filename in os.listdir(folder):
+#             file_path = os.path.join(folder, filename)
+#             try:
+#                 os.remove(file_path)
+#             except Exception as e:
+#                 print(f"Error deleting {file_path}: {e}")
                 
 if __name__ == "__main__":
     app.run()
