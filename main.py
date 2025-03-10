@@ -17,12 +17,13 @@ def save_srt(subtitles, srt_filename):
     with open(srt_filename, "w", encoding="utf-8") as f:
         f.writelines(subtitles)
         
-def transcribe(audio_path):
-    model = WhisperModel("tiny")
-    segments, info = model.transcribe(audio_path)
+def transcribe(audio_path, model_size="tiny"):
+    model = WhisperModel(model_size, compute_type="int8")  # Enforce int8 to reduce memory
+
+    segments, info = model.transcribe(audio_path, word_timestamps=True)
     language = info.language
-    print("Transcription language", language)
-    
+    print("Transcription language:", language)
+
     subtitle_data = []
     index = 1
     for segment in segments:
@@ -103,7 +104,7 @@ def upload():
     file_path = os.path.join(upload_dir, file.filename)
     file.save(file_path)
     
-    clip = mp.VideoFileClip(file_path)
+    clip = mp.VideoFileClip(file_path, target_resolution=(854, 480))  # Use 480p resolution
     if clip.audio:
         filename = os.path.splitext(file.filename)[0] 
         audio_path = os.path.join(upload_dir, f"{filename}.mp3")
