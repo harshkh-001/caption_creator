@@ -18,7 +18,7 @@ def save_srt(subtitles, srt_filename):
         f.writelines(subtitles)
         
 def transcribe(audio_path):
-    model = WhisperModel("small")
+    model = WhisperModel("tiny")
     segments, info = model.transcribe(audio_path)
     language = info.language
     print("Transcription language", language)
