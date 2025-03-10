@@ -85,32 +85,37 @@ def home():
 def upload_file():
     return render_template("uploadfile.html")
 
-@app.route("/uploaded" , methods=["GET","POST"])
+@app.route("/uploaded", methods=["POST"])
 def upload():
-    if(request.method == "POST"):
-        if "file" not in request.files:
-            return "no file part"
-        file = request.files["file"]
-        if(file.filename == ""):
-            return "no selected file"
+    if "file" not in request.files:
+        return "No file part"
+    
+    file = request.files["file"]
+    if file.filename == "":
+        return "No selected file"
+    
+    upload_dir = "tmp"
+    
+    # Ensure the tmp directory exists
+    if not os.path.exists(upload_dir):
+        os.makedirs(upload_dir)
+    
+    file_path = os.path.join(upload_dir, file.filename)
+    file.save(file_path)
+    
+    clip = mp.VideoFileClip(file_path)
+    if clip.audio:
+        filename = os.path.splitext(file.filename)[0] 
+        audio_path = os.path.join(upload_dir, f"{filename}.mp3")
+        srt_path = os.path.join(upload_dir, f"{filename}.srt")
         
-        file_path = os.path.join("tmp", file.filename)
-        file.save(file_path)
-        
-        # try:   
-        clip = mp.VideoFileClip(file_path)
-        if(clip.audio):
-            filename = os.path.splitext(file.filename)[0] 
-            clip.audio.write_audiofile(f"tmp\\{filename}.mp3")
-            subtitles = transcribe(f"tmp\\{filename}.mp3")
-            save_srt(subtitles,f"tmp\\{filename}.srt")
-            return redirect(f"/srtfiledownload/{filename}")
-            # return file.filename.srt
-        else:
-            return "no audio available in this file"
-        # except Exception as e:
-        #     return f"Error processing file: {e}"
-# app.config["debug"] = True
+        clip.audio.write_audiofile(audio_path)
+        subtitles = transcribe(audio_path)
+        save_srt(subtitles, srt_path)
+
+        return redirect(f"/srtfiledownload/{filename}")
+    else:
+        return "No audio available in this file"
 
 
 @app.route("/srtfiledownload/<filename>")
@@ -125,16 +130,6 @@ def download_srt(filename):
         return "File not found", 404
     
     return send_file(srt_path, as_attachment=True, download_name=f"{filename}.srt")
-
-# def cleanup_files():
-#     """Deletes all files from static/uploads, static/srt_files, and static/audios."""
-#     for folder in ["static//uploads", "static//srt_files","static//audios"]:
-#         for filename in os.listdir(folder):
-#             file_path = os.path.join(folder, filename)
-#             try:
-#                 os.remove(file_path)
-#             except Exception as e:
-#                 print(f"Error deleting {file_path}: {e}")
                 
 if __name__ == "__main__":
     app.run()
